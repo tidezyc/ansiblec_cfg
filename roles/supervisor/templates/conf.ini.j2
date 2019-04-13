@@ -1,0 +1,25 @@
+[program:{{program_id}}]
+user=root
+{% if args is defined %}
+{% if args is mapping %}
+command={{command}}{% for k,v in args.items() %}{% if v %} -{{k}}={{v}}{% endif %}{% endfor %}
+{% else %}
+command={{command}} {{args}}
+{% endif %}
+{% else %}
+command={{command}} 
+{% endif %}
+
+numprocs=1
+exitcodes=0
+autorestart=unexpected
+redirect_stderr=true
+minfds=327680
+stdout_logfile=/data/supervisor/{{program_id}}.log
+{% if envs is defined %}
+{% if envs is mapping %}
+environment={% for k,v in envs.items() %}{% if v %}{{k}}="{{v}}",{% endif %}{% endfor %}
+{% else %}
+environment={{envs}}
+{% endif %}
+{% endif %}

@@ -1,0 +1,11 @@
+---
+- name: create base dir
+  file: path={{base_dir}} state=directory mode=0777
+
+- local_action: stat path=../bin/{{item}}
+  with_items: "{{group_names}}"
+  register: pkg_stat
+
+- copy: src=../bin/{{item.item}} dest={{base_dir}}/{{item.item}}_{{build}} mode=0555
+  with_items: '{{pkg_stat.results}}'
+  when: item.stat.exists

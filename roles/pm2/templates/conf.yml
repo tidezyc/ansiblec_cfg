@@ -1,0 +1,17 @@
+script: {{script}}
+name: {{name}}
+cwd: {{cmd|default(base_dir)}}
+exec_mode: {{mode|default('fork')}}
+instances: {{instances|default(1)}}
+max_memory_restart: 2G
+autorestart: true
+env:
+  NODE_ENV: {{NODE_ENV}}
+{% if envs is defined %}
+{% for k,v in envs.items() %}
+  {{k}}: '{{v}}'
+{% endfor %}
+{% endif %}
+error_file: /data/projlogs/{{name}}/error.log
+out_file: /data/projlogs/{{name}}/access.log
+merge_logs: true

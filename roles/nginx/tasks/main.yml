@@ -1,0 +1,65 @@
+---
+- name: copy conf file
+  template: src={{conf_file}} dest=/usr/local/nginx/conf/include/{{conf_file|basename|splitext|first}}.conf
+  when: conf_file is defined
+  register: conf_file_change_A
+  become: true
+  notify:
+    - reload nginx
+
+- name: template when ngx_hosts is string
+  template: src=ngx.conf.j2 dest=/usr/local/nginx/conf/include/{{ngx_hosts.split(',')[0]}}.conf
+  when: 
+    - conf_file is not defined 
+    - ngx_hosts is string
+  register: conf_file_change_B
+  become: true
+  notify:
+    - reload nginx
+
+- name: template when ngx_hosts is not string
+  template: src=ngx.conf.j2 dest=/usr/local/nginx/conf/include/{{ngx_hosts[0]}}.conf
+  when: 
+    - conf_file is not defined 
+    - ngx_hosts is not string
+  register: conf_file_change_C
+  become: true
+  notify:
+    - reload nginx
+
+- name: create nginx unload dir
+  file: path=/data/logs/nginx/unload state=directory mode=0755
+  become: true
+
+- name: unload log
+  template: src=unload.j2 dest=/data/logs/nginx/unload/{{ngx_hosts.split(',')[0]}}_unload_{{ansible_date_time.epoch}}
+  when: 
+    - conf_file is not defined 
+    - ngx_hosts is string 
+    - action is defined 
+    - action == "unload"
+  become: true
+
+- name: unload log
+  template: src=unload.j2 dest=/data/logs/nginx/unload/{{ngx_hosts[0]}}_unload_{{ansible_date_time.epoch}}
+  when: 
+    - conf_file is not defined 
+    - ngx_hosts is not string 
+    - action is defined 
+    - action == "unload"
+  become: true
+
+- name: unload nginx
+  service: name=nginx state=reloaded
+  when: 
+    - action is defined 
+    - action == "unload"
+    - conf_file_change_A.changed or conf_file_change_B.changed or conf_file_change_C.changed
+  register: unload_action
+  become: true
+
+- name: wait for nginx unload
+  pause: seconds={{unload_seconds|default(10)}}
+  when: unload_action|changed
+  become: true
+

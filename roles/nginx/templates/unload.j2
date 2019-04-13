@@ -1,0 +1,45 @@
+{% if unload is defined -%}
+unload manual: {{unload}}
+    {% if groups[unload] is defined -%}
+    unload group>>
+        {% for h in groups[unload] -%}
+        check host: {{h}}
+            {% if hostvars[h]['ansible_host'] is defined -%}
+                {% if hostvars[h]['ansible_host'] != ansible_host -%}
+                    >>> server {{hostvars[h]['ansible_host']}}:{{http_port}};
+                {% endif -%}
+            {% else -%}
+                {% if hostvars[h]['inventory_hostname'] != inventory_hostname -%}
+                    >>> server {{hostvars[h]['inventory_hostname']}}:{{http_port}};
+                {% endif -%}
+            {% endif -%}
+        {% endfor -%}
+    {% else -%}
+    unload hosts>>
+        {% if hostvars[unload]['ansible_host'] is defined -%}
+            >>> server {{hostvars[unload]['ansible_host']}}:{{http_port}};
+        {% else -%}
+            >>> server {{hostvars[unload]['inventory_hostname']}}:{{http_port}};
+        {% endif -%}
+    {% endif -%}
+{% else -%}
+unload auto: {{group_names}}
+    {% for g in group_names -%}
+    check group: {{g}}
+        {% for h in groups[g] -%}
+        check host: {{h}} >>
+            {{hostvars[h]["group_names"]}}
+            {% if hostvars[h]["group_names"] == group_names -%}
+                {% if hostvars[h]['ansible_host'] is defined -%}
+                    {% if hostvars[h]['ansible_host'] != ansible_host -%}
+                        >>> server {{hostvars[h]['ansible_host']}}:{{http_port}};
+                    {% endif -%}
+                {% else -%}
+                    {% if hostvars[h]['inventory_hostname'] != inventory_hostname -%}
+                        >>> server {{hostvars[h]['inventory_hostname']}}:{{http_port}};
+                    {% endif -%}
+                {% endif -%}
+            {% endif -%}
+        {% endfor -%}
+    {% endfor -%}
+{% endif -%}

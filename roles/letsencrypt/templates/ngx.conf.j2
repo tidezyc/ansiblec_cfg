@@ -1,0 +1,20 @@
+server {
+    listen 80;
+
+{% set ngx_host = ssl_domain %}
+{% if ngx_hosts is defined %}
+    {% if ngx_hosts is string %}
+        {% set ngx_host = ngx_hosts.split(',')[0] %}
+    {% endif %}
+    {% if ngx_hosts is not string %}
+        {% set ngx_host = ngx_hosts[0] %}
+    {% endif %}
+{% endif %}
+
+    server_name {{ngx_host}};
+
+    location ~ /.well-known{
+        root /var/www/letsencrypt/{{ssl_domain}};
+        try_files $uri $uri/ =404;
+    }
+}

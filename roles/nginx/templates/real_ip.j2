@@ -1,0 +1,14 @@
+    set_real_ip_from  127.0.0.1;
+    set_real_ip_from  10.0.0.0/8;
+{% if real_ip_filter is defined %}
+    {% for f in real_ip_filter.split(',') %}
+        {{- 'set_real_ip_from  '+ f }};
+    {% endfor %}
+{% endif -%}
+
+{% if proxy_protocol is defined and proxy_protocol -%}
+    real_ip_header    proxy_protocol;
+{% else -%}
+    real_ip_header    X-Forwarded-For;
+{% endif %}
+    real_ip_recursive on;

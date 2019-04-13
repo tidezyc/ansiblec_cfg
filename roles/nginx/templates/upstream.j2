@@ -1,0 +1,67 @@
+{% if http_port is number %}
+    {%- set http_port = http_port|string %}
+{% endif -%}
+
+{% if http_port is string %}
+    {%- set http_port = http_port.split(',') %}
+{% endif -%}
+
+upstream {{upstream}} {
+{% if action is defined and action == "unload" %}
+    {% if unload is defined -%}
+        {% if groups[unload] is defined -%}
+            {% for h in groups[unload] -%}
+                {% if hostvars[h]['ansible_host'] is defined -%}
+                    {% if hostvars[h]['ansible_host'] != ansible_host -%}
+
+                        {% for port in http_port %}
+                            server {{hostvars[h]['ansible_host']}}:{{port}};
+                        {% endfor %}
+
+                    {% endif -%}
+                {% else -%}
+                    {% if hostvars[h]['inventory_hostname'] != inventory_hostname -%}
+                        {% for port in http_port %}
+                            server {{hostvars[h]['inventory_hostname']}}:{{port}};
+                        {% endfor %}
+                    {% endif -%}
+                {% endif -%}
+            {% endfor -%}
+        {% else -%}
+            {% if hostvars[unload]['ansible_host'] is defined -%}
+                {% for port in http_port %}
+                    server {{hostvars[unload]['ansible_host']}}:{{port}};
+                {% endfor %}
+            {% else -%}
+                {% for port in http_port %}
+                    server {{hostvars[unload]['inventory_hostname']}}:{{port}};
+                {% endfor %}
+            {% endif -%}
+        {% endif -%}
+    {% else -%}
+        {% for g in group_names -%}
+            {% for h in groups[g] -%}
+                {% if hostvars[h]["group_names"] == group_names -%}
+                    {% if hostvars[h]['ansible_host'] is defined -%}
+                        {% if hostvars[h]['ansible_host'] != ansible_host -%}
+                            {% for port in http_port %}
+                                server {{hostvars[h]['ansible_host']}}:{{port}};
+                            {% endfor %}
+                        {% endif -%}
+                    {% else -%}
+                        {% if hostvars[h]['inventory_hostname'] != inventory_hostname -%}
+                            {% for port in http_port %}
+                                server {{hostvars[h]['inventory_hostname']}}:{{port}};
+                            {% endfor %}
+                        {% endif -%}
+                    {% endif -%}
+                {% endif -%}
+            {% endfor -%}
+        {% endfor -%}
+    {% endif -%}
+{% else %}
+    {% for port in http_port %}
+        server 127.0.0.1:{{port}};
+    {% endfor %}
+{% endif -%}
+}

@@ -1,0 +1,80 @@
+{% if ngx_hosts is string %}
+    {%- set __id = ngx_hosts.split(',')[0]|regex_replace('\\.','_') %}
+{% else %}
+    {%- set __id = ngx_hosts[0]|regex_replace('\\.','_') %}
+{% endif -%}
+
+{% if limit is defined and limit -%}
+    {% include 'limit_http.j2' %}
+{% endif %}
+
+{% if http_port is defined %}
+    {%- set upstream = 'server_'+__id %}
+    {%- include 'upstream.j2' %}
+{% endif %}
+
+server {
+{% if ngx_ports is not defined %}
+    {%- set ngx_ports = '8080' %}
+{% endif -%}
+
+{% if ngx_ports is number %}
+    {%- set ngx_ports = ngx_ports|string %}
+{% endif -%}
+
+{% if ngx_ports is string %}
+    {%- set ngx_ports = ngx_ports.split(',') %}
+{% endif -%}
+
+{% if ssl is defined and ssl and ssl_port is not defined %}
+    {%- set ssl_port = ngx_ports[0] %}
+{% endif -%}
+
+{% for port in ngx_ports %}
+    {% if not (ssl is defined and ssl and ssl_port is defined and ssl_port|int==port|int) -%}
+        listen {{port}}{% if proxy_protocol is defined and proxy_protocol %} proxy_protocol{% endif %};
+    {% endif %}
+{% endfor %}
+
+{% if ssl is defined and ssl %}
+    listen {{ssl_port}} ssl{% if proxy_protocol is defined and proxy_protocol %} proxy_protocol{% endif %};
+{% endif -%}
+
+{% if ngx_hosts is string %}
+    {%- set ngx_hosts = ngx_hosts.split(',') -%}
+{% endif %}
+
+    server_name{% for host in ngx_hosts %} {{ host }}{% endfor %};
+
+{% if ssl is defined and ssl %}
+    {%- include 'ssl.j2' %}
+{% endif %}
+
+
+{% if real_ip is defined and real_ip %}
+    {%- include 'real_ip.j2' %}
+{% endif %}
+
+
+{% if limit is defined and limit %}
+    {%- include 'limit_server.j2' %}
+{% endif %}
+
+
+{% if cors is defined and cors %}
+    {%- include 'cors.j2' %}
+{% endif %}
+
+    add_header 'X-Powered-By' '{{ansible_hostname}}';
+
+    ### location
+{% if include_conf is defined %}
+    {% include include_conf %}
+{% elif http_port is defined %}
+    location / {
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-Ip $remote_addr;
+        proxy_pass http://{{upstream}};
+    }
+{% endif %}
+}

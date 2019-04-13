@@ -1,0 +1,39 @@
+---
+
+- name: check ssl cert file is exist
+  stat:
+    path: /etc/letsencrypt/live/{{ssl_domain}}
+  register: certfile
+  become: true
+
+- name: create letsencrypt directory
+  file: name=/var/www/letsencrypt/{{ssl_domain}} state=directory
+  when: 
+    - not certfile.stat.exists
+
+- name: create letsencrype conf
+  template: 
+    src: ngx.conf.j2
+    dest: /usr/local/nginx/conf/include/{{ssl_domain}}.conf
+  when: 
+    - not certfile.stat.exists
+  become: true
+
+- name: Reload nginx to activate letsencrypt site
+  service: name=nginx state=restarted
+  become: true
+
+- name: Create letsencrypt certificate
+  shell: certbot certonly -n --webroot -w /var/www/letsencrypt/{{ssl_domain}} -m {{ letsencrypt_email }} --agree-tos -d {{ ssl_domain }} --renew-by-default
+  when: 
+    - not certfile.stat.exists
+  become: true
+
+- name: Add letsencrypt cronjob for cert renewal
+  cron:
+    name: letsencrypt_renewal_{{ssl_domain}}
+    special_time: weekly
+    job: letsencrypt --renew certonly -n --webroot -w /var/www/letsencrypt/{{ssl_domain}} -m {{ letsencrypt_email }} --agree-tos -d {{ ssl_domain }}
+  when: 
+    - not certfile.stat.exists
+  become: true

@@ -1,0 +1,5 @@
+    limit_conn one_limit_conn_{{__id}} {{limit_conn|default(5)}};
+    limit_conn_status 403;
+
+    limit_req zone=one_limit_req_{{__id}} burst={{limit_burst|default(5)}} nodelay;
+    limit_req_status 403;

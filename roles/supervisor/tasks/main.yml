@@ -1,0 +1,22 @@
+---
+
+- name: create log dir
+  file: path=/data/supervisor/ state=directory mode=0755
+  become: true
+
+- name: copy conf file
+  copy: src={{conf_file}} dest=/etc/supervisor.d/{{program_id}}.ini
+  when: conf_file is defined and program_id is defined
+  become: true
+
+- template: src=conf.ini.j2 dest=/etc/supervisor.d/{{program_id}}.ini
+  when: conf_file is not defined and program_id is defined
+  become: true
+
+- name: present supervisor
+  supervisorctl: name={{program_id}} state=present
+  become: true
+
+- name: supervisor {{state}}
+  supervisorctl: name={{program_id}} state={{state}}
+  become: true

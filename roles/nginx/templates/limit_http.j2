@@ -1,0 +1,25 @@
+### 白名单
+geo $whiteiplist_{{__id}}  {
+    default 1;
+    127.0.0.1 0;
+    10.0.0.0/8 0;
+{% if limit_whiteips is defined %}
+    {% for ip in limit_whiteips.split(',') %}
+        {{- ip}} 0;
+    {% endfor %}
+{% endif %}
+}
+
+### 高防
+map $http_wl_proxy_client_ip $wl_real_ip_{{__id}} {
+    default $binary_remote_addr;
+    ~\d $http_wl_proxy_client_ip;
+}
+
+map $whiteiplist_{{__id}} $limit_{{__id}} {
+    1 $wl_real_ip_{{__id}};
+    0 "";
+}
+
+limit_conn_zone $limit_{{__id}} zone=one_limit_conn_{{__id}}:{{limit_mem|default(10)}}m;
+limit_req_zone $limit_{{__id}} zone=one_limit_req_{{__id}}:{{limit_mem|default(10)}}m rate={{limit_req|default(50)}}r/m;
