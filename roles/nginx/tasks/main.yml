@@ -60,6 +60,6 @@
 
 - name: wait for nginx unload
   pause: seconds={{unload_seconds|default(10)}}
-  when: unload_action|changed
+  when: unload_action is changed
   become: true
 
